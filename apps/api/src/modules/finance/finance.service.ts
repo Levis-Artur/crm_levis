@@ -27,6 +27,19 @@ const COMPLETED_ORDER_STATUS_CODE = 'fully_completed';
 const DEFAULT_CURRENCY_CODE = 'UAH';
 const MANAGER_EARNING_RATE = new Decimal('0.3');
 const ZERO_DECIMAL = new Decimal(0);
+const TRACKED_FINANCE_CATEGORY_CODES = [
+  'sale_income',
+  'returns_loss',
+  'advertising',
+  'taxes',
+  'garage',
+  'logistics',
+  'other_expense',
+  'manual_income_adjustment',
+  'manual_expense_adjustment',
+] as const;
+
+type TrackedFinanceCategoryCode = (typeof TRACKED_FINANCE_CATEGORY_CODES)[number];
 
 type ManagerCompletedOrderRecord = Prisma.OrderGetPayload<{
   select: {
@@ -157,15 +170,17 @@ export class FinanceService {
       paidTo: query.paidTo,
     });
 
-    const [payouts, total, paidTotal, pendingTotal] = await this.prisma.$transaction([
-      this.prisma.managerPayout.findMany({
-        where,
-        include: managerPayoutInclude,
-        orderBy: [{ periodEnd: 'desc' }, { createdAt: 'desc' }],
-        skip,
-        take: limit,
-      }),
-      this.prisma.managerPayout.count({ where }),
+    const [[payouts, total], paidTotal, pendingTotal] = await Promise.all([
+      this.prisma.$transaction([
+        this.prisma.managerPayout.findMany({
+          where,
+          include: managerPayoutInclude,
+          orderBy: [{ periodEnd: 'desc' }, { createdAt: 'desc' }],
+          skip,
+          take: limit,
+        }),
+        this.prisma.managerPayout.count({ where }),
+      ]),
       this.sumPayoutsByStatuses(currentUser.id, [ManagerPayoutStatus.PAID]),
       this.sumPayoutsByStatuses(currentUser.id, [
         ManagerPayoutStatus.PENDING,
@@ -217,7 +232,7 @@ export class FinanceService {
 
     let totalIncome = ZERO_DECIMAL;
     let totalExpense = ZERO_DECIMAL;
-    const trackedCategoryTotals: Record<string, Prisma.Decimal> = {
+    const trackedCategoryTotals: Record<TrackedFinanceCategoryCode, Prisma.Decimal> = {
       sale_income: ZERO_DECIMAL,
       returns_loss: ZERO_DECIMAL,
       advertising: ZERO_DECIMAL,
@@ -251,7 +266,7 @@ export class FinanceService {
         bucket.expense += Number(amount);
       }
 
-      if (trackedCategoryTotals[transaction.categoryCode]) {
+      if (this.isTrackedFinanceCategoryCode(transaction.categoryCode)) {
         trackedCategoryTotals[transaction.categoryCode] =
           trackedCategoryTotals[transaction.categoryCode].add(amount);
       }
@@ -279,7 +294,7 @@ export class FinanceService {
       },
       charts: {
         monthlyCashflow: Array.from(monthlyBuckets.values()),
-        expenseByCategory: [
+        expenseByCategory: ([
           ['returns_loss', 'Returns Loss'],
           ['advertising', 'Advertising'],
           ['taxes', 'Taxes'],
@@ -287,11 +302,11 @@ export class FinanceService {
           ['logistics', 'Logistics'],
           ['other_expense', 'Other Expense'],
           ['manual_expense_adjustment', 'Manual Expense Adjustment'],
-        ]
+        ] as const)
           .map(([code, label]) => ({
             categoryCode: code,
             label,
-            amount: Number(trackedCategoryTotals[code] ?? ZERO_DECIMAL),
+            amount: Number(trackedCategoryTotals[code]),
           }))
           .filter((item) => item.amount > 0),
       },
@@ -937,6 +952,14 @@ export class FinanceService {
 
   private toDecimal(value: number | string | Prisma.Decimal) {
     return new Decimal(value);
+  }
+
+  private isTrackedFinanceCategoryCode(
+    code: string,
+  ): code is TrackedFinanceCategoryCode {
+    return (
+      TRACKED_FINANCE_CATEGORY_CODES as readonly string[]
+    ).includes(code);
   }
 
   private toAuditJson(value: unknown) {

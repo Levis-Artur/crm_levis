@@ -60,12 +60,12 @@ export class NovaPoshtaService {
     }
 
     const recipientName = dto.recipientName?.trim() ?? order.customerName.trim();
-    const recipientPhone = dto.recipientPhone?.trim() ?? order.customerPhone?.trim();
+    const recipientPhone = dto.recipientPhone?.trim() ?? order.customerPhone?.trim() ?? null;
     const destinationCity = dto.destinationCity?.trim() ?? order.city?.trim() ?? null;
     const destinationBranch =
       dto.destinationBranch?.trim() ?? order.deliveryPoint?.trim() ?? null;
 
-    this.assertOrderShipmentData(order.orderNumber, {
+    const resolvedShipmentData = this.assertOrderShipmentData(order.orderNumber, {
       recipientName,
       recipientPhone,
       destinationCity,
@@ -82,7 +82,7 @@ export class NovaPoshtaService {
       recipientContactRef: dto.recipientContactRef,
       recipientCityRef: dto.recipientCityRef,
       recipientWarehouseRef: dto.recipientWarehouseRef,
-      recipientPhone,
+      recipientPhone: resolvedShipmentData.recipientPhone,
       declaredValue: this.formatDecimal(declaredValue),
       cashOnDeliveryAmount: this.formatDecimal(cashOnDeliveryAmount),
       weight: this.formatDecimal(
@@ -115,10 +115,10 @@ export class NovaPoshtaService {
           deliveryStatusCode,
           externalRef: providerResponse.record.Ref ?? null,
           trackingNumber: providerResponse.record.IntDocNumber ?? null,
-          recipientName,
-          recipientPhone,
-          destinationCity,
-          destinationBranch,
+          recipientName: resolvedShipmentData.recipientName,
+          recipientPhone: resolvedShipmentData.recipientPhone,
+          destinationCity: resolvedShipmentData.destinationCity,
+          destinationBranch: resolvedShipmentData.destinationBranch,
           declaredValue,
           cashOnDeliveryAmount,
           shippingCost,
@@ -429,7 +429,12 @@ export class NovaPoshtaService {
       destinationCity: string | null;
       destinationBranch: string | null;
     },
-  ) {
+  ): {
+    recipientName: string;
+    recipientPhone: string;
+    destinationCity: string;
+    destinationBranch: string;
+  } {
     const missingFields = [
       !resolved.recipientName ? 'recipientName' : null,
       !resolved.recipientPhone ? 'recipientPhone' : null,
@@ -438,7 +443,12 @@ export class NovaPoshtaService {
     ].filter((value): value is string => value !== null);
 
     if (missingFields.length === 0) {
-      return;
+      return {
+        recipientName: resolved.recipientName!,
+        recipientPhone: resolved.recipientPhone!,
+        destinationCity: resolved.destinationCity!,
+        destinationBranch: resolved.destinationBranch!,
+      };
     }
 
     throw new BadRequestException(

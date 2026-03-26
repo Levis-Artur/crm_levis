@@ -83,7 +83,7 @@ export class ReturnsController {
         (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor)?.split(',')[0]?.trim() ??
         request.ip ??
         null,
-      userAgent: Array.isArray(userAgent) ? userAgent[0] : userAgent ?? null,
+      userAgent: (Array.isArray(userAgent) ? userAgent[0] : userAgent) ?? null,
     };
   }
 }

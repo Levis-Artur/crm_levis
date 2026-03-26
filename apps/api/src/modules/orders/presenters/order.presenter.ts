@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 const orderManagerSelect = {
   id: true,
@@ -37,46 +37,48 @@ const shipmentSelect = {
   updatedAt: true,
 } as const;
 
-export const orderListInclude = {
-  manager: {
-    select: orderManagerSelect,
-  },
-  orderStatus: {
-    select: statusSelect,
-  },
-  paymentStatus: {
-    select: paymentStatusSelect,
-  },
-  deliveryStatus: {
-    select: statusSelect,
-  },
-  shipments: {
-    select: shipmentSelect,
-    orderBy: [{ createdAt: 'asc' }],
-  },
-  _count: {
-    select: {
-      items: true,
-      shipments: true,
-      orderReturns: true,
+export const orderListArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
+  include: {
+    manager: {
+      select: orderManagerSelect,
+    },
+    orderStatus: {
+      select: statusSelect,
+    },
+    paymentStatus: {
+      select: paymentStatusSelect,
+    },
+    deliveryStatus: {
+      select: statusSelect,
+    },
+    shipments: {
+      select: shipmentSelect,
+      orderBy: [{ createdAt: 'asc' }],
+    },
+    _count: {
+      select: {
+        items: true,
+        shipments: true,
+        orderReturns: true,
+      },
     },
   },
-} as const;
+});
 
-export const orderDetailsInclude = {
-  ...orderListInclude,
-  items: {
-    orderBy: [{ lineNumber: 'asc' }],
+export const orderDetailsArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
+  include: {
+    ...orderListArgs.include,
+    items: {
+      orderBy: [{ lineNumber: 'asc' }],
+    },
   },
-} as const;
+});
 
-export type OrderListRecord = Prisma.OrderGetPayload<{
-  include: typeof orderListInclude;
-}>;
+export const orderListInclude = orderListArgs.include;
+export const orderDetailsInclude = orderDetailsArgs.include;
 
-export type OrderDetailsRecord = Prisma.OrderGetPayload<{
-  include: typeof orderDetailsInclude;
-}>;
+export type OrderListRecord = Prisma.OrderGetPayload<typeof orderListArgs>;
+export type OrderDetailsRecord = Prisma.OrderGetPayload<typeof orderDetailsArgs>;
 
 function presentManager(order: OrderListRecord | OrderDetailsRecord) {
   return {

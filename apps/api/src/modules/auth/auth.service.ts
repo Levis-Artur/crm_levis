@@ -1,6 +1,7 @@
 import { UnauthorizedException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import type { StringValue } from 'ms';
 import { PrismaService } from '../prisma/prisma.service';
 import { presentUser, userWithRoleInclude } from '../users/presenters/user.presenter';
 import { normalizeEmail, normalizePhone } from '../users/utils/user-identity.util';
@@ -124,11 +125,11 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(accessPayload, {
         secret: this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
-        expiresIn: this.configService.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN'),
+        expiresIn: this.getJwtExpiresIn('JWT_ACCESS_EXPIRES_IN'),
       }),
       this.jwtService.signAsync(refreshPayload, {
         secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN'),
+        expiresIn: this.getJwtExpiresIn('JWT_REFRESH_EXPIRES_IN'),
       }),
     ]);
 
@@ -147,5 +148,11 @@ export class AuthService {
       accessTokenExpiresIn: this.configService.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN'),
       refreshTokenExpiresIn: this.configService.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN'),
     };
+  }
+
+  private getJwtExpiresIn(
+    key: 'JWT_ACCESS_EXPIRES_IN' | 'JWT_REFRESH_EXPIRES_IN',
+  ): StringValue {
+    return this.configService.getOrThrow<StringValue>(key);
   }
 }
