@@ -1,0 +1,349 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum FinanceDirection {
+  INCOME
+  EXPENSE
+}
+
+enum ManagerPayoutStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum ShipmentProvider {
+  NOVA_POSHTA
+  COURIER
+  PICKUP
+  OTHER
+}
+
+model Role {
+  code        String   @id @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  isSystem    Boolean  @default(true)
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
+}
+
+model User {
+  id                  String               @id @default(uuid()) @db.Char(36)
+  roleCode            String               @db.VarChar(50)
+  firstName           String               @db.VarChar(100)
+  lastName            String               @db.VarChar(100)
+  email               String?              @unique(map: "users_email_key") @db.VarChar(191)
+  phone               String?              @unique(map: "users_phone_key") @db.VarChar(32)
+  passwordHash        String?              @db.VarChar(255)
+  refreshTokenHash    String?              @db.VarChar(255)
+  isActive            Boolean              @default(true)
+  lastLoginAt         DateTime?
+  role                Role                 @relation(fields: [roleCode], references: [code], onDelete: Restrict, onUpdate: Cascade)
+  managedOrders       Order[]              @relation("OrderManager")
+  processedOrderReturns OrderReturn[]      @relation("OrderReturnProcessor")
+  managerPayouts      ManagerPayout[]      @relation("PayoutManager")
+  createdManagerPayouts ManagerPayout[]    @relation("PayoutCreator")
+  financeTransactions FinanceTransaction[] @relation("FinanceManager")
+  auditLogs           AuditLog[]           @relation("AuditActor")
+  comments            Comment[]            @relation("CommentAuthor")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([roleCode], map: "users_role_code_idx")
+  @@index([isActive, createdAt], map: "users_is_active_created_at_idx")
+  @@map("users")
+}
+
+model OrderStatus {
+  code        String   @id @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  sortOrder   Int      @default(0)
+  isTerminal  Boolean  @default(false)
+  orders      Order[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("order_statuses")
+}
+
+model PaymentStatus {
+  code        String   @id @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  sortOrder   Int      @default(0)
+  isFinal     Boolean  @default(false)
+  orders      Order[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("payment_statuses")
+}
+
+model DeliveryStatus {
+  code        String     @id @db.VarChar(50)
+  name        String     @db.VarChar(100)
+  description String?    @db.VarChar(255)
+  sortOrder   Int        @default(0)
+  isTerminal  Boolean    @default(false)
+  orders      Order[]    @relation("OrderDeliveryStatus")
+  shipments   Shipment[] @relation("ShipmentDeliveryStatus")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("delivery_statuses")
+}
+
+model Order {
+  id                  String               @id @default(uuid()) @db.Char(36)
+  orderNumber         String               @unique(map: "orders_order_number_key") @db.VarChar(40)
+  managerId           String               @db.Char(36)
+  orderStatusCode     String               @default("new") @db.VarChar(50)
+  paymentStatusCode   String               @default("unpaid") @db.VarChar(50)
+  deliveryStatusCode  String               @default("pending") @db.VarChar(50)
+  customerName        String               @db.VarChar(191)
+  customerPhone       String?              @db.VarChar(32)
+  customerPhoneExtra  String?              @db.VarChar(32)
+  customerEmail       String?              @db.VarChar(191)
+  city                String?              @db.VarChar(120)
+  deliveryPoint       String?              @db.VarChar(191)
+  deliveryMethod      String?              @db.VarChar(100)
+  paymentMethod       String?              @db.VarChar(100)
+  currencyCode        String               @default("UAH") @db.Char(3)
+  subtotal            Decimal              @default(0) @db.Decimal(12, 2)
+  discountTotal       Decimal              @default(0) @db.Decimal(12, 2)
+  totalAmount         Decimal              @default(0) @db.Decimal(12, 2)
+  purchaseAmount      Decimal              @default(0) @db.Decimal(12, 2)
+  saleAmount          Decimal              @default(0) @db.Decimal(12, 2)
+  marginAmount        Decimal              @default(0) @db.Decimal(12, 2)
+  prepaymentAmount    Decimal              @default(0) @db.Decimal(12, 2)
+  shippingCost        Decimal              @default(0) @db.Decimal(12, 2)
+  notes               String?              @db.Text
+  internalNote        String?              @db.Text
+  cancelReason        String?              @db.VarChar(255)
+  isProblematic       Boolean              @default(false)
+  placedAt            DateTime             @default(now())
+  completedAt         DateTime?
+  manager             User                 @relation("OrderManager", fields: [managerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderStatus         OrderStatus          @relation(fields: [orderStatusCode], references: [code], onDelete: Restrict, onUpdate: Cascade)
+  paymentStatus       PaymentStatus        @relation(fields: [paymentStatusCode], references: [code], onDelete: Restrict, onUpdate: Cascade)
+  deliveryStatus      DeliveryStatus       @relation("OrderDeliveryStatus", fields: [deliveryStatusCode], references: [code], onDelete: Restrict, onUpdate: Cascade)
+  items               OrderItem[]
+  orderReturns        OrderReturn[]
+  shipments           Shipment[]
+  financeTransactions FinanceTransaction[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([managerId], map: "orders_manager_id_idx")
+  @@index([orderStatusCode], map: "orders_order_status_code_idx")
+  @@index([paymentStatusCode], map: "orders_payment_status_code_idx")
+  @@index([deliveryStatusCode], map: "orders_delivery_status_code_idx")
+  @@index([managerId, placedAt], map: "orders_manager_id_placed_at_idx")
+  @@index([isProblematic, placedAt], map: "orders_is_problematic_placed_at_idx")
+  @@index([placedAt], map: "orders_placed_at_idx")
+  @@map("orders")
+}
+
+model OrderItem {
+  id             String   @id @default(uuid()) @db.Char(36)
+  orderId        String   @db.Char(36)
+  lineNumber     Int
+  sku            String?  @db.VarChar(100)
+  purchaseLink   String?  @db.VarChar(1024)
+  productName    String   @db.VarChar(191)
+  quantity       Int      @default(1)
+  purchasePrice  Decimal  @default(0) @db.Decimal(12, 2)
+  salePrice      Decimal  @default(0) @db.Decimal(12, 2)
+  unitPrice      Decimal  @default(0) @db.Decimal(12, 2)
+  discountAmount Decimal  @default(0) @db.Decimal(12, 2)
+  lineTotal      Decimal  @default(0) @db.Decimal(12, 2)
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([orderId, lineNumber], map: "order_items_order_id_line_number_key")
+  @@index([orderId], map: "order_items_order_id_idx")
+  @@map("order_items")
+}
+
+model ReturnStatus {
+  code        String   @id @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  sortOrder   Int      @default(0)
+  isTerminal  Boolean  @default(false)
+  orderReturns OrderReturn[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("return_statuses")
+}
+
+model OrderReturn {
+  id                  String               @id @default(uuid()) @db.Char(36)
+  returnNumber        String               @unique(map: "returns_return_number_key") @db.VarChar(40)
+  orderId             String               @db.Char(36)
+  returnStatusCode    String               @default("requested") @db.VarChar(50)
+  processedById       String?              @db.Char(36)
+  reason              String?              @db.VarChar(255)
+  notes               String?              @db.Text
+  amount              Decimal              @default(0) @db.Decimal(12, 2)
+  requestedAt         DateTime             @default(now())
+  resolvedAt          DateTime?
+  order               Order                @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  returnStatus        ReturnStatus         @relation(fields: [returnStatusCode], references: [code], onDelete: Restrict, onUpdate: Cascade)
+  processedBy         User?                @relation("OrderReturnProcessor", fields: [processedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  financeTransactions FinanceTransaction[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([orderId], map: "returns_order_id_idx")
+  @@index([returnStatusCode], map: "returns_return_status_code_idx")
+  @@index([processedById], map: "returns_processed_by_id_idx")
+  @@index([requestedAt], map: "returns_requested_at_idx")
+  @@map("returns")
+}
+
+model FinanceCategory {
+  code                String               @id @db.VarChar(50)
+  name                String               @db.VarChar(100)
+  description         String?              @db.VarChar(255)
+  direction           FinanceDirection
+  sortOrder           Int                  @default(0)
+  isSystem            Boolean              @default(true)
+  financeTransactions FinanceTransaction[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@map("finance_categories")
+}
+
+model FinanceTransaction {
+  id           String          @id @default(uuid()) @db.Char(36)
+  categoryCode String          @db.VarChar(50)
+  managerId    String?         @db.Char(36)
+  orderId      String?         @db.Char(36)
+  orderReturnId String?        @map("returnId") @db.Char(36)
+  amount       Decimal         @default(0) @db.Decimal(12, 2)
+  currencyCode String          @default("UAH") @db.Char(3)
+  reference    String?         @db.VarChar(100)
+  description  String?         @db.Text
+  metadata     Json?
+  occurredAt   DateTime        @default(now())
+  category     FinanceCategory @relation(fields: [categoryCode], references: [code], onDelete: Restrict, onUpdate: Cascade)
+  manager      User?           @relation("FinanceManager", fields: [managerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  order        Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  orderReturn  OrderReturn?    @relation(fields: [orderReturnId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([categoryCode], map: "finance_transactions_category_code_idx")
+  @@index([managerId], map: "finance_transactions_manager_id_idx")
+  @@index([orderId], map: "finance_transactions_order_id_idx")
+  @@index([orderReturnId], map: "finance_transactions_return_id_idx")
+  @@index([occurredAt], map: "finance_transactions_occurred_at_idx")
+  @@index([managerId, occurredAt], map: "finance_transactions_manager_id_occurred_at_idx")
+  @@map("finance_transactions")
+}
+
+model ManagerPayout {
+  id           String              @id @default(uuid()) @db.Char(36)
+  managerId    String              @db.Char(36)
+  createdById  String?             @db.Char(36)
+  amount       Decimal             @default(0) @db.Decimal(12, 2)
+  currencyCode String              @default("UAH") @db.Char(3)
+  periodStart  DateTime
+  periodEnd    DateTime
+  status       ManagerPayoutStatus @default(PENDING)
+  notes        String?             @db.Text
+  paidAt       DateTime?
+  manager      User                @relation("PayoutManager", fields: [managerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdBy    User?               @relation("PayoutCreator", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@unique([managerId, periodStart, periodEnd], map: "manager_payouts_manager_id_period_start_period_end_key")
+  @@index([managerId], map: "manager_payouts_manager_id_idx")
+  @@index([createdById], map: "manager_payouts_created_by_id_idx")
+  @@index([status, periodStart], map: "manager_payouts_status_period_start_idx")
+  @@map("manager_payouts")
+}
+
+model Shipment {
+  id                 String           @id @default(uuid()) @db.Char(36)
+  orderId            String           @db.Char(36)
+  deliveryStatusCode String           @default("pending") @db.VarChar(50)
+  provider           ShipmentProvider @default(NOVA_POSHTA)
+  externalRef        String?          @db.VarChar(120)
+  trackingNumber     String?          @db.VarChar(100)
+  recipientName      String?          @db.VarChar(191)
+  recipientPhone     String?          @db.VarChar(32)
+  destinationCity    String?          @db.VarChar(120)
+  destinationBranch  String?          @db.VarChar(120)
+  declaredValue      Decimal          @default(0) @db.Decimal(12, 2)
+  cashOnDeliveryAmount Decimal        @default(0) @db.Decimal(12, 2)
+  shippingCost       Decimal          @default(0) @db.Decimal(12, 2)
+  metadata           Json?
+  rawPayloadJson     Json?
+  lastSyncedAt       DateTime?
+  dispatchedAt       DateTime?
+  deliveredAt        DateTime?
+  order              Order            @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  deliveryStatus     DeliveryStatus   @relation("ShipmentDeliveryStatus", fields: [deliveryStatusCode], references: [code], onDelete: Restrict, onUpdate: Cascade)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([orderId], map: "shipments_order_id_idx")
+  @@index([deliveryStatusCode], map: "shipments_delivery_status_code_idx")
+  @@index([externalRef], map: "shipments_external_ref_idx")
+  @@unique([provider, trackingNumber], map: "shipments_provider_tracking_number_key")
+  @@map("shipments")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Char(36)
+  actorId    String?  @db.Char(36)
+  entityType String   @db.VarChar(100)
+  entityId   String   @db.VarChar(64)
+  action     String   @db.VarChar(100)
+  summary    String?  @db.VarChar(255)
+  changes    Json?
+  metadata   Json?
+  ipAddress  String?  @db.VarChar(64)
+  userAgent  String?  @db.VarChar(255)
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt], map: "audit_logs_actor_id_created_at_idx")
+  @@index([entityType, entityId, createdAt], map: "audit_logs_entity_type_entity_id_created_at_idx")
+  @@index([action, createdAt], map: "audit_logs_action_created_at_idx")
+  @@map("audit_logs")
+}
+
+model Comment {
+  id         String   @id @default(uuid()) @db.Char(36)
+  authorId   String?  @db.Char(36)
+  entityType String   @db.VarChar(100)
+  entityId   String   @db.VarChar(64)
+  body       String   @db.Text
+  isInternal Boolean  @default(true)
+  author     User?    @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([authorId, createdAt], map: "comments_author_id_created_at_idx")
+  @@index([entityType, entityId, createdAt], map: "comments_entity_type_entity_id_created_at_idx")
+  @@map("comments")
+}

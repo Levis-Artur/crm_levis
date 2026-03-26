@@ -1,0 +1,128 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: crm_mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-crm}
+      MYSQL_USER: ${MYSQL_USER:-crm_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-crm_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+    ports:
+      - '${MYSQL_PORT:-3306}:3306'
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./infra/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - crm_network
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: crm_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - redis_data:/data
+      - ./infra/redis:/usr/local/etc/redis
+    networks:
+      - crm_network
+
+  api:
+    profiles: ['app']
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: development
+    container_name: crm_api
+    restart: unless-stopped
+    working_dir: /app
+    command: npm run dev --workspace apps/api
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      CORS_ORIGIN: http://localhost:${WEB_PORT:-3000}
+      DATABASE_URL: mysql://${MYSQL_USER:-crm_user}:${MYSQL_PASSWORD:-crm_password}@mysql:3306/${MYSQL_DATABASE:-crm}
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-replace-with-a-long-random-string}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-replace-with-a-different-long-random-string}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+      BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS:-12}
+      NOVA_POSHTA_ENABLED: ${NOVA_POSHTA_ENABLED:-false}
+      NOVA_POSHTA_API_URL: ${NOVA_POSHTA_API_URL:-https://api.novaposhta.ua/v2.0/json/}
+      NOVA_POSHTA_REQUEST_TIMEOUT_MS: ${NOVA_POSHTA_REQUEST_TIMEOUT_MS:-10000}
+      NOVA_POSHTA_API_KEY: ${NOVA_POSHTA_API_KEY:-}
+      NOVA_POSHTA_SENDER_REF: ${NOVA_POSHTA_SENDER_REF:-}
+      NOVA_POSHTA_SENDER_CITY_REF: ${NOVA_POSHTA_SENDER_CITY_REF:-}
+      NOVA_POSHTA_SENDER_ADDRESS_REF: ${NOVA_POSHTA_SENDER_ADDRESS_REF:-}
+      NOVA_POSHTA_SENDER_CONTACT_REF: ${NOVA_POSHTA_SENDER_CONTACT_REF:-}
+      NOVA_POSHTA_SENDER_PHONE: ${NOVA_POSHTA_SENDER_PHONE:-}
+      NOVA_POSHTA_DEFAULT_SERVICE_TYPE: ${NOVA_POSHTA_DEFAULT_SERVICE_TYPE:-WarehouseWarehouse}
+      NOVA_POSHTA_DEFAULT_PAYER_TYPE: ${NOVA_POSHTA_DEFAULT_PAYER_TYPE:-Recipient}
+      NOVA_POSHTA_DEFAULT_PAYMENT_METHOD: ${NOVA_POSHTA_DEFAULT_PAYMENT_METHOD:-Cash}
+      NOVA_POSHTA_DEFAULT_CARGO_TYPE: ${NOVA_POSHTA_DEFAULT_CARGO_TYPE:-Cargo}
+      NOVA_POSHTA_DEFAULT_WEIGHT: ${NOVA_POSHTA_DEFAULT_WEIGHT:-1}
+      NOVA_POSHTA_DEFAULT_SEATS_AMOUNT: ${NOVA_POSHTA_DEFAULT_SEATS_AMOUNT:-1}
+    ports:
+      - '${API_PORT:-3001}:3001'
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - crm_network
+
+  web:
+    profiles: ['app']
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: development
+    container_name: crm_web
+    restart: unless-stopped
+    working_dir: /app
+    command: npm run dev --workspace apps/web
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: 1
+      API_BASE_URL: http://api:3001/api
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-3001}/api
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    depends_on:
+      api:
+        condition: service_started
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/web/.next
+    networks:
+      - crm_network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  crm_network:
+    driver: bridge
