@@ -16,8 +16,12 @@ CMD ["npm", "run", "dev", "--workspace", "apps/api"]
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run prisma:generate --workspace apps/api
-RUN npm run build --workspace apps/api
+RUN npx prisma generate --schema /app/apps/api/prisma/schema.prisma \
+  && test -d /app/node_modules/@prisma/client \
+  && test -d /app/node_modules/.prisma/client
+WORKDIR /app/apps/api
+RUN npx tsc -p /app/apps/api/tsconfig.build.json --incremental false \
+  && test -f /app/apps/api/dist/main.js
 
 FROM node:22-alpine AS production
 WORKDIR /app
@@ -25,7 +29,7 @@ ENV NODE_ENV=production
 ENV PORT=3001
 COPY package.json ./
 COPY apps/api/package.json apps/api/package.json
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 WORKDIR /app/apps/api
