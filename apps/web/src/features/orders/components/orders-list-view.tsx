@@ -1,6 +1,7 @@
 'use client';
 
 import type { FormEvent } from 'react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -55,7 +56,7 @@ export function OrdersListView({ role, filters, managers, orders }: OrdersListVi
       cell: ({ row }) => (
         <div className="min-w-[180px]">
           <Link
-            href={`/orders/${row.original.id}`}
+            href={`/orders/${row.original.id}` as Route}
             className="text-sm font-semibold text-foreground hover:text-primary"
           >
             {row.original.orderNumber}
@@ -121,13 +122,13 @@ export function OrdersListView({ role, filters, managers, orders }: OrdersListVi
       cell: ({ row }) => (
         <div className="flex min-w-[240px] flex-wrap items-center gap-2">
           <Link
-            href={`/orders/${row.original.id}`}
+            href={`/orders/${row.original.id}` as Route}
             className={buttonVariants({ variant: 'outline', size: 'sm' })}
           >
             {t.common.view}
           </Link>
           <Link
-            href={`/orders/${row.original.id}/edit`}
+            href={`/orders/${row.original.id}/edit` as Route}
             className={buttonVariants({ variant: 'ghost', size: 'sm' })}
           >
             {t.common.edit}
@@ -163,7 +164,7 @@ export function OrdersListView({ role, filters, managers, orders }: OrdersListVi
     };
 
     const query = buildOrdersQueryString(nextFilters);
-    router.push(`/orders${query ? `?${query}` : ''}`);
+    router.push(`/orders${query ? `?${query}` : ''}` as Route);
   };
 
   return (
@@ -347,13 +348,13 @@ function getVisiblePages(currentPage: number, pageCount: number) {
   return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
 }
 
-function buildOrdersHref(filters: OrdersListFilters, page: number) {
+function buildOrdersHref(filters: OrdersListFilters, page: number): Route {
   const query = buildOrdersQueryString({
     ...filters,
     page,
   });
 
-  return `/orders${query ? `?${query}` : ''}`;
+  return `/orders${query ? `?${query}` : ''}` as Route;
 }
 
 function getFormValue(formData: FormData, key: string) {

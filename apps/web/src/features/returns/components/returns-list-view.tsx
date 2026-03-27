@@ -1,6 +1,7 @@
 'use client';
 
 import type { FormEvent } from 'react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -59,7 +60,7 @@ export function ReturnsListView({
       cell: ({ row }) => (
         <div className="min-w-[180px]">
           <Link
-            href={`/returns/${row.original.id}`}
+            href={`/returns/${row.original.id}` as Route}
             className="text-sm font-semibold text-foreground hover:text-primary"
           >
             {row.original.returnNumber}
@@ -73,7 +74,7 @@ export function ReturnsListView({
       cell: ({ row }) => (
         <div className="min-w-[220px]">
           <Link
-            href={`/orders/${row.original.order.id}`}
+            href={`/orders/${row.original.order.id}` as Route}
             className="font-medium text-foreground hover:text-primary"
           >
             {row.original.order.orderNumber}
@@ -136,7 +137,7 @@ export function ReturnsListView({
       header: t.returns.headers.actions,
       cell: ({ row }) => (
         <Link
-          href={`/returns/${row.original.id}`}
+          href={`/returns/${row.original.id}` as Route}
           className={buttonVariants({ variant: 'outline', size: 'sm' })}
         >
           {t.common.view}
@@ -166,7 +167,7 @@ export function ReturnsListView({
     };
 
     const query = buildReturnsQueryString(nextFilters);
-    router.push(`/returns${query ? `?${query}` : ''}`);
+    router.push(`/returns${query ? `?${query}` : ''}` as Route);
   };
 
   return (
@@ -347,13 +348,13 @@ function getVisiblePages(currentPage: number, pageCount: number) {
   return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
 }
 
-function buildReturnsHref(filters: ReturnsListFilters, page: number) {
+function buildReturnsHref(filters: ReturnsListFilters, page: number): Route {
   const query = buildReturnsQueryString({
     ...filters,
     page,
   });
 
-  return `/returns${query ? `?${query}` : ''}`;
+  return `/returns${query ? `?${query}` : ''}` as Route;
 }
 
 function getFormValue(formData: FormData, key: string) {

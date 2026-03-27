@@ -40,7 +40,7 @@ export interface ManagerFinanceEarningsResponse {
   chart: ManagerFinanceEarningsChartPoint[];
 }
 
-export interface FinanceUserSummary extends OrderManagerOption {}
+export type FinanceUserSummary = OrderManagerOption;
 
 export interface ManagerPayoutItem {
   id: string;

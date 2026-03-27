@@ -34,14 +34,16 @@ function mapCode(map: LabelMap, code: string | null | undefined, fallback?: stri
 
 export function translateApiMessage(
   message: string | string[] | null | undefined,
-  fallback = t.common.genericError,
+  fallback?: string,
 ) {
+  const resolvedFallback = fallback ?? t.common.genericError;
+
   if (Array.isArray(message)) {
     return message.map((item) => t.apiMessages[item as keyof typeof t.apiMessages] ?? item).join(', ');
   }
 
   if (!message) {
-    return fallback;
+    return resolvedFallback;
   }
 
   return t.apiMessages[message as keyof typeof t.apiMessages] ?? message;

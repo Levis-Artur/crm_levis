@@ -43,6 +43,19 @@ interface AdminFinanceViewProps {
   managers: OrderManagerOption[];
 }
 
+const CATEGORY_SNAPSHOT_ITEMS = [
+  ['returns_loss', 'returnsLoss'],
+  ['advertising', 'advertising'],
+  ['taxes', 'taxes'],
+  ['garage', 'garage'],
+  ['logistics', 'logistics'],
+  ['other_expense', 'otherExpense'],
+  ['manual_income_adjustment', 'manualIncomeAdjustment'],
+  ['manual_expense_adjustment', 'manualExpenseAdjustment'],
+] as const satisfies ReadonlyArray<
+  readonly [string, keyof AdminFinanceSummary['categories']]
+>;
+
 type TransactionFormState = {
   categoryCode: string;
   managerId: string;
@@ -338,7 +351,7 @@ export function AdminFinanceView({
               <CardDescription>{t.finance.admin.transactionFormDescription}</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4" onSubmit={handleTransactionSubmit}>
+              <form className="space-y-4" onSubmit={(event) => void handleTransactionSubmit(event)}>
                 <Field>
                   <Label htmlFor="categoryCode">{t.finance.fields.category}</Label>
                   <Select
@@ -444,7 +457,7 @@ export function AdminFinanceView({
               <CardDescription>{t.finance.admin.createPayoutDescription}</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4" onSubmit={handlePayoutSubmit}>
+              <form className="space-y-4" onSubmit={(event) => void handlePayoutSubmit(event)}>
                 <Field>
                   <Label htmlFor="payoutManagerId">{t.finance.fields.manager}</Label>
                   <Select
@@ -542,22 +555,13 @@ export function AdminFinanceView({
           <CardDescription>{t.finance.admin.categorySnapshotDescription}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            ['returns_loss', summary.categories.returnsLoss],
-            ['advertising', summary.categories.advertising],
-            ['taxes', summary.categories.taxes],
-            ['garage', summary.categories.garage],
-            ['logistics', summary.categories.logistics],
-            ['other_expense', summary.categories.otherExpense],
-            ['manual_income_adjustment', summary.categories.manualIncomeAdjustment],
-            ['manual_expense_adjustment', summary.categories.manualExpenseAdjustment],
-          ].map(([code, value]) => (
+          {CATEGORY_SNAPSHOT_ITEMS.map(([code, categoryKey]) => (
             <div key={code} className="rounded-2xl border border-border/70 bg-secondary/25 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 {getFinanceCategoryLabel(code)}
               </p>
               <p className="mt-3 text-lg font-semibold text-foreground">
-                {formatCurrency(value, summary.currencyCode)}
+                {formatCurrency(summary.categories[categoryKey], summary.currencyCode)}
               </p>
             </div>
           ))}

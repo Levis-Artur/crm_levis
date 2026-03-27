@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
@@ -18,8 +19,10 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
 
   const requestedNextPath = searchParams.get('next');
-  const nextPath =
-    requestedNextPath && requestedNextPath.startsWith('/') ? requestedNextPath : '/dashboard';
+  const nextPath: Route =
+    requestedNextPath && requestedNextPath.startsWith('/')
+      ? (requestedNextPath as Route)
+      : '/dashboard';
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -65,7 +68,7 @@ export function LoginForm() {
       </CardHeader>
 
       <CardContent>
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form className="space-y-5" onSubmit={(event) => void handleSubmit(event)}>
           <div className="space-y-2">
             <Label htmlFor="identifier">{t.auth.identifierLabel}</Label>
             <Input

@@ -13,7 +13,8 @@ export function formatDateTime(value: string | null | undefined) {
   return dateTimeFormatter.format(new Date(value));
 }
 
-export function formatCurrency(value: number | string, _currencyCode = 'UAH') {
+export function formatCurrency(value: number | string, currencyCode = 'UAH') {
+  void currencyCode;
   const amount = typeof value === 'number' ? value : Number(value);
 
   return new Intl.NumberFormat('uk-UA', {

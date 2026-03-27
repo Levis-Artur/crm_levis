@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageIntro } from '@/components/app-shell/page-intro';
@@ -65,7 +66,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
             variant="outline"
             size="lg"
           />
-          <Link href={`/orders/${order.id}/edit`} className={buttonVariants({ size: 'lg' })}>
+          <Link href={`/orders/${order.id}/edit` as Route} className={buttonVariants({ size: 'lg' })}>
             {t.orders.editOrder}
           </Link>
         </div>

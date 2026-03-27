@@ -127,7 +127,7 @@ export function ReturnActionsPanel({ orderReturn }: ReturnActionsPanelProps) {
           </div>
 
           {allowedTransitions.length > 0 ? (
-            <form className="space-y-4" onSubmit={handleStatusUpdate}>
+            <form className="space-y-4" onSubmit={(event) => void handleStatusUpdate(event)}>
               <div className="space-y-2">
                 <Label htmlFor="nextStatusCode">{t.returns.nextStatus}</Label>
                 <Select
@@ -166,7 +166,7 @@ export function ReturnActionsPanel({ orderReturn }: ReturnActionsPanelProps) {
           <CardDescription>{t.returns.returnDataDescription}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={handleSave}>
+          <form className="space-y-4" onSubmit={(event) => void handleSave(event)}>
             <div className="space-y-2">
               <Label htmlFor="returnAmount">{t.returns.returnAmountLabel}</Label>
               <Input

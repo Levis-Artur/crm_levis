@@ -6,7 +6,13 @@ export function durationToSeconds(input: string) {
     return undefined;
   }
 
-  const [, rawValue, unit] = match;
+  const rawValue = match[1];
+  const unit = match[2];
+
+  if (!rawValue || !unit) {
+    return undefined;
+  }
+
   const value = Number.parseInt(rawValue, 10);
 
   switch (unit.toLowerCase()) {
@@ -37,7 +43,13 @@ export function isJwtExpired(token: string) {
       return true;
     }
 
-    const payload = JSON.parse(decodeBase64Url(parts[1])) as { exp?: number };
+    const encodedPayload = parts[1];
+
+    if (!encodedPayload) {
+      return true;
+    }
+
+    const payload = JSON.parse(decodeBase64Url(encodedPayload)) as { exp?: number };
 
     if (!payload.exp) {
       return true;

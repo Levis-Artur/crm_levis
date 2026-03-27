@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { Undo2 } from 'lucide-react';
 import { Button, type ButtonProps } from '@/components/ui/button';
@@ -65,7 +66,7 @@ export function MoveToReturnButton({
         return;
       }
 
-      router.push(`/returns/${payload.id}`);
+      router.push(`/returns/${payload.id}` as Route);
       router.refresh();
     } catch {
       setError(t.returns.moveToReturnError);

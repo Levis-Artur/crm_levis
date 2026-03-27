@@ -6,7 +6,7 @@ interface SectionPlaceholderProps {
   eyebrow: string;
   title: string;
   description: string;
-  details: string[];
+  details: ReadonlyArray<string>;
 }
 
 export function SectionPlaceholder({

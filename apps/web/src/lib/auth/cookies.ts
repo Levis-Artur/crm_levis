@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import type { NextResponse } from 'next/server';
 import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from './constants';
 import type { AuthTokensPayload } from './types';
 import { durationToSeconds } from './token';

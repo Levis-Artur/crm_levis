@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -94,7 +95,7 @@ export function OrderForm({
       return;
     }
 
-    router.replace(`/orders/${nextOrderId}`);
+    router.replace(`/orders/${nextOrderId}` as Route);
     router.refresh();
   });
 
@@ -106,7 +107,7 @@ export function OrderForm({
         description={t.orders.formDescription}
       />
 
-      <form className="space-y-6" onSubmit={onSubmit}>
+      <form className="space-y-6" onSubmit={(event) => void onSubmit(event)}>
         <input type="hidden" {...register('currencyCode')} />
         <input type="hidden" {...register('internalNote')} />
 
@@ -394,7 +395,7 @@ export function OrderForm({
               </Button>
 
               <Link
-                href={mode === 'create' ? '/orders' : `/orders/${orderId}`}
+                href={(mode === 'create' ? '/orders' : `/orders/${orderId}`) as Route}
                 className={buttonVariants({ variant: 'outline', size: 'lg' })}
               >
                 {t.common.cancel}

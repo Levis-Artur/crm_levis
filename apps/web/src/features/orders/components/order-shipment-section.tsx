@@ -202,7 +202,7 @@ export function OrderShipmentSection({ order, shipment }: OrderShipmentSectionPr
           <p className="mt-2">{t.orders.shipmentCreateHelp}</p>
         </div>
 
-        <form className="space-y-6" onSubmit={onCreateShipment}>
+        <form className="space-y-6" onSubmit={(event) => void onCreateShipment(event)}>
           <div className="space-y-4">
             <div>
               <p className="text-sm font-semibold text-foreground">{t.orders.shipmentRefsTitle}</p>

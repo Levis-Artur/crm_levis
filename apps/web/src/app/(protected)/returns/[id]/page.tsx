@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageIntro } from '@/components/app-shell/page-intro';
@@ -50,7 +51,7 @@ export default async function ReturnDetailsPage({ params }: ReturnDetailsPagePro
           <Link href="/returns" className={buttonVariants({ variant: 'outline' })}>
             {t.returns.backToReturns}
           </Link>
-          <Link href={`/orders/${orderReturn.order.id}`} className={buttonVariants({ variant: 'outline' })}>
+          <Link href={`/orders/${orderReturn.order.id}` as Route} className={buttonVariants({ variant: 'outline' })}>
             {t.returns.openOrder}
           </Link>
         </div>

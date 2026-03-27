@@ -1,3 +1,4 @@
+import type { Route } from 'next';
 import type { AppRole } from './auth/types';
 import { t } from './i18n';
 
@@ -12,7 +13,7 @@ export type NavigationIconKey =
 
 export interface NavigationItem {
   title: string;
-  href: string;
+  href: Route;
   iconKey: NavigationIconKey;
   roles: AppRole[];
 }

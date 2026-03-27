@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { LogOut } from 'lucide-react';
@@ -26,7 +27,7 @@ export function LogoutButton({ className }: LogoutButtonProps) {
     } catch {
       setError(t.auth.logoutError);
     } finally {
-      router.replace('/login');
+      router.replace('/login' as Route);
       router.refresh();
       setIsSubmitting(false);
     }
