@@ -6,7 +6,7 @@ const orderManagerSelect = {
   lastName: true,
   email: true,
   phone: true,
-} as const;
+} as const satisfies Prisma.UserSelect;
 
 const statusSelect = {
   code: true,
@@ -37,48 +37,45 @@ const shipmentSelect = {
   updatedAt: true,
 } as const;
 
-export const orderListArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
-  include: {
-    manager: {
-      select: orderManagerSelect,
-    },
-    orderStatus: {
-      select: statusSelect,
-    },
-    paymentStatus: {
-      select: paymentStatusSelect,
-    },
-    deliveryStatus: {
-      select: statusSelect,
-    },
-    shipments: {
-      select: shipmentSelect,
-      orderBy: [{ createdAt: 'asc' }],
-    },
-    _count: {
-      select: {
-        items: true,
-        shipments: true,
-        orderReturns: true,
-      },
+export const orderListInclude = {
+  manager: {
+    select: orderManagerSelect,
+  },
+  orderStatus: {
+    select: statusSelect,
+  },
+  paymentStatus: {
+    select: paymentStatusSelect,
+  },
+  deliveryStatus: {
+    select: statusSelect,
+  },
+  shipments: {
+    select: shipmentSelect,
+    orderBy: [{ createdAt: 'asc' }],
+  },
+  _count: {
+    select: {
+      items: true,
+      shipments: true,
+      orderReturns: true,
     },
   },
-});
+} as const satisfies Prisma.OrderInclude;
 
-export const orderDetailsArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
-  include: {
-    ...orderListArgs.include,
-    items: {
-      orderBy: [{ lineNumber: 'asc' }],
-    },
+export const orderDetailsInclude = {
+  ...orderListInclude,
+  items: {
+    orderBy: [{ lineNumber: 'asc' }],
   },
-});
+} as const satisfies Prisma.OrderInclude;
 
-export const orderListInclude = orderListArgs.include;
-export const orderDetailsInclude = orderDetailsArgs.include;
-
-export type OrderListRecord = Prisma.OrderGetPayload<typeof orderListArgs>;
-export type OrderDetailsRecord = Prisma.OrderGetPayload<typeof orderDetailsArgs>;
+export type OrderListRecord = Prisma.OrderGetPayload<{
+  include: typeof orderListInclude;
+}>;
+export type OrderDetailsRecord = Prisma.OrderGetPayload<{
+  include: typeof orderDetailsInclude;
+}>;
 
 function presentManager(order: OrderListRecord | OrderDetailsRecord) {
   return {
